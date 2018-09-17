@@ -2,7 +2,7 @@ name = Out of stock notificator
 description = It tells the user if an item is out of stock. It supports attributes.
 core = 7.x
 dependencies[] =  uc_stock
-dependencies[] =  cml_store_stock
+dependencies[] =  gf_stock
 package = Ubercart - extra
 
 

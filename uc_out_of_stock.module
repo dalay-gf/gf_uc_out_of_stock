@@ -107,14 +107,13 @@ function uc_out_of_stock_getstockinfo_for_region($region, $nid) {
   $stockinfo = array();
 
   // Данные об остатках товара в конкретном регионе 
-  // получаем из таблицы модуля importkit_cml_stock.
-  $query = db_select('importkit_cml_stock')
-    ->condition("nid", $nid, '=') 
-    ->condition('region', $region, '=');
-  $query->addExpression('sum(stock)', 'sum');
-  $result = $query->execute()->fetchAssoc();
-
-  $stock = $result['sum'];
+  // получаем из таблицы модуля gf_stock.
+  $query = db_select('gf_stock_stocks', 's')
+    ->fields('s', array('stock'))
+    ->condition('s.nid', $nid)
+    ->condition('s.region', $region)
+    ->execute();
+  $stock = $query->fetchField();
 
   if (is_numeric($stock)) {
     $stockinfo['stock'] = $stock;
