@@ -84,6 +84,7 @@ function uc_out_of_stock_menu() {
  */
 function uc_out_of_stock_getstockinfo_from_model($model) {
   $stockinfo = array();
+
   $stock = db_query("SELECT ups.stock FROM {uc_product_stock} ups WHERE ups.active = 1 AND ups.sku = :sku", array(':sku' => $model))->fetchField();
   if (is_numeric($stock)) {
     $stockinfo['stock'] = $stock;
@@ -93,6 +94,34 @@ function uc_out_of_stock_getstockinfo_from_model($model) {
   return $stockinfo;
 }
 
+/**
+ * Возвращает остатки по региону, если пользователь выбрал такую опцию. 
+ * Функция добавлена самостоятельно. 
+ * Для взаимодействия с модулями gf_stock и importkit_cml_stock.
+ *
+ * @param string $model
+ * @return mixed
+ *   Return an array of the stock information or null if NONE
+ */
+function uc_out_of_stock_getstockinfo_for_region($region, $nid) {
+  $stockinfo = array();
+
+  // Данные об остатках товара в конкретном регионе 
+  // получаем из таблицы модуля importkit_cml_stock.
+  $query = db_select('importkit_cml_stock')
+    ->condition("nid", $nid, '=') 
+    ->condition('region', $region, '=');
+  $query->addExpression('sum(stock)', 'sum');
+  $result = $query->execute()->fetchAssoc();
+
+  $stock = $result['sum'];
+
+  if (is_numeric($stock)) {
+    $stockinfo['stock'] = $stock;
+  }
+
+  return $stockinfo;
+}
 /**
  * Helper function to retrieve stock information looked up by nid and attributes
  *
@@ -396,7 +425,16 @@ function uc_out_of_stock_validate_cart_items($items, $page = 'cart') {
     // Only validates if there are items on the cart, otherwise it's likely
     // it's being tried to be removed by setting the qty to 0.
     if ($cart_item['qty'] > 0) {
-      $stockinfo = uc_out_of_stock_getstockinfo_from_model($model);
+      $current_region = gf_stock_get_current_region();
+      if ($current_region != GF_STOCK_REGION_ALL) {
+        // Если в пользовательской сессии выбрана опция
+        // отображения остатков по конкретному региону - получаем их добавленной 
+        // в модуль функцией.
+        $stockinfo = uc_out_of_stock_getstockinfo_for_region($current_region, $item->nid);
+      }
+      else {
+        $stockinfo = uc_out_of_stock_getstockinfo_from_model($model);
+      }
       if ($stockinfo) {
         if ($stockinfo['stock'] - $cart_item['qty'] < 0) {
           $qty = 0;
