@@ -103,17 +103,24 @@ function uc_out_of_stock_getstockinfo_from_model($model) {
  * @return mixed
  *   Return an array of the stock information or null if NONE
  */
-function uc_out_of_stock_getstockinfo_for_region($region, $nid) {
+function uc_out_of_stock_getstockinfo_for_region($region, $nid, $uc_combo) {
   $stockinfo = array();
-
   // Данные об остатках товара в конкретном регионе 
   // получаем из таблицы модуля gf_stock.
-  $query = db_select('gf_stock_stocks', 's')
-    ->fields('s', array('stock'))
-    ->condition('s.nid', $nid)
-    ->condition('s.region', $region)
-    ->execute();
-  $stock = $query->fetchField();
+  $query = db_select('gf_stock_stocks', 's');
+  if($uc_combo){
+    $query->fields('s', array('stock'))
+      ->condition('s.uc_combination', $uc_combo);
+  }
+  else{
+    // Если нет атрибутов, то считаем сумму по nid и региону,
+    // не зависимо от наличия guid2.
+    $query->addExpression('SUM(s.stock)');
+  }
+  $query->condition('s.nid', $nid)
+    ->condition('s.region', $region);
+
+  $stock = $query->execute()->fetchField();
 
   if (is_numeric($stock)) {
     $stockinfo['stock'] = $stock;
@@ -424,12 +431,20 @@ function uc_out_of_stock_validate_cart_items($items, $page = 'cart') {
     // Only validates if there are items on the cart, otherwise it's likely
     // it's being tried to be removed by setting the qty to 0.
     if ($cart_item['qty'] > 0) {
-      $current_region = gf_stock_get_current_region();
+      $uc_combo = '';
+      // Если у товара есть атрибуты, то будем проверять остатки с их учетом.
+      if (isset($item->data['attributes']) && !empty($item->data['attributes'])) {
+        $combo = $item->data['attributes'];
+        ksort($combo);
+        $uc_combo = serialize($combo);
+      }
+      $current_region = (isset($item->data['region_stock']) && !empty($item->data['region_stock'])) 
+        ? $item->data['region_stock'] :  gf_stock_get_current_region();
       if ($current_region != GF_STOCK_REGION_ALL) {
         // Если в пользовательской сессии выбрана опция
         // отображения остатков по конкретному региону - получаем их добавленной 
         // в модуль функцией.
-        $stockinfo = uc_out_of_stock_getstockinfo_for_region($current_region, $item->nid);
+        $stockinfo = uc_out_of_stock_getstockinfo_for_region($current_region, $item->nid, $uc_combo);
       }
       else {
         $stockinfo = uc_out_of_stock_getstockinfo_from_model($model);
