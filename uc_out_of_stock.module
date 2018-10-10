@@ -104,7 +104,7 @@ function uc_out_of_stock_getstockinfo_from_model($model) {
  *   Return an array of the stock information or null if NONE
  */
 function uc_out_of_stock_getstockinfo_for_region($region, $nid, $uc_combo) {
-  $stockinfo = array();
+  $stockinfo = array('stock' => 0);
   // Данные об остатках товара в конкретном регионе 
   // получаем из таблицы модуля gf_stock.
   $query = db_select('gf_stock_stocks', 's');
