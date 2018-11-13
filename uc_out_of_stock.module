@@ -36,6 +36,9 @@ function uc_out_of_stock_form_alter(&$form, &$form_state, $form_id) {
   }
 
   if ($form_id == 'uc_cart_view_form') {
+
+      $form['items'][0]['title']['#prefix'] = '<div class="lslslsls">';
+      $form['items'][0]['title']['#suffix'] = '</div>';
     $form['#validate'][] = 'uc_out_of_stock_validate_form_cart';
   }
 
@@ -425,6 +428,11 @@ function uc_out_of_stock_validate_cart_items($items, $page = 'cart') {
     }
   }
 
+  // Массив, содержащий остатки по товарам, которых
+  // заказано больше, чем есть в наличии.
+  // Будет возвращен, как результат работы функции.
+  $stock_data = [];
+
   // Now for each model, check the stock
   foreach ($cart_items as $model => $cart_item) {
     $item = $cart_item['item'];
@@ -462,11 +470,12 @@ function uc_out_of_stock_validate_cart_items($items, $page = 'cart') {
             $error = _uc_out_of_stock_get_error('not_enough', $item->nid, isset($item->data['attributes']) ? $item->data['attributes'] : array(), $stockinfo['stock'], $qty);
           }
           form_set_error("items][{$cart_item['key']}][qty", $error['msg']);
+          $stock_data[$cart_item['key']] = $stockinfo['stock'];
         }
       }
     }
   }
-
+  return $stock_data;
 }
 
 /**
@@ -483,10 +492,26 @@ function uc_out_of_stock_validate_form_checkout($form, &$form_state) {
  * Validate the 'Shopping cart' form preventing the addition of more items that
  * the ones currently in stock.
  */
-function uc_out_of_stock_validate_form_cart($form, &$form_state) {
+function uc_out_of_stock_validate_form_cart(&$form, &$form_state) {
   $items = $form_state['values']['items'];
   if (substr($form_state['clicked_button']['#name'], 0, 7) != 'remove-' && $form_state['clicked_button']['#id'] != 'edit-empty' ) {
-    uc_out_of_stock_validate_cart_items($items, 'cart');
+    // При превышения заказанного кол-ва над тем, что есть в наличии - 
+    // функция-валидатор вернет нам массив с остатками по проблемным пунктам заказа.
+    $result = uc_out_of_stock_validate_cart_items($items, 'cart');
+
+    if ($result) {
+      // Если что-то пришло - есть оверхед по заказанному кол-ву.
+      foreach ($result as $delta => $stock) {
+        if (isset($form['items'][$delta])) {
+          // Добавляем текст о реальном наличии товара в нужные места.
+          $output  = '<span style="margin-left: 1rem;" class="out-of-stock-msg error">';
+          $output .= t('To order is available only !stock item(s).', 
+            array('!stock'=>$stock));
+          $output .= '</span>';
+          $form['items'][$delta]['desc']['#markup'] .= $output;
+        }
+      }
+    }
   }
 }
 
@@ -554,4 +579,3 @@ function _uc_out_of_stock_get_error($type, $nid, $attrs, $stock, $qty = 0) {
 
   return $error;
 }
-
