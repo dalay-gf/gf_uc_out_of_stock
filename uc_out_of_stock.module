@@ -470,6 +470,7 @@ function uc_out_of_stock_validate_cart_items($items, $page = 'cart') {
             $error = _uc_out_of_stock_get_error('not_enough', $item->nid, isset($item->data['attributes']) ? $item->data['attributes'] : array(), $stockinfo['stock'], $qty);
           }
           form_set_error("items][{$cart_item['key']}][qty", $error['msg']);
+          // form_set_error("items[0][qty]", $error['msg']);
           $stock_data[$cart_item['key']] = $stockinfo['stock'];
         }
       }
@@ -509,6 +510,11 @@ function uc_out_of_stock_validate_form_cart(&$form, &$form_state) {
             array('!stock'=>$stock));
           $output .= '</span>';
           $form['items'][$delta]['desc']['#markup'] .= $output;
+          $form['items'][$delta]['qty']['#value'] = (int) $stock;
+
+          // Добавляем класс error в блок с кол-вом.
+          $qty_prefix = str_replace('quantity', 'quantity error', $form['items'][$delta]['qty']['#prefix']);
+          $form['items'][$delta]['qty']['#prefix'] = $qty_prefix;
         }
       }
     }
