@@ -585,3 +585,13 @@ function _uc_out_of_stock_get_error($type, $nid, $attrs, $stock, $qty = 0) {
 
   return $error;
 }
+
+
+/**
+ * Implements of hook_update_projects_alter()
+ */
+function uc_out_of_stock_update_projects_alter(&$projects) {
+  // Отключаем проверку обновлений для модуля. Ибо 
+  // его код был изменен и обновлятье теперь его нельзя.
+  unset($projects['uc_out_of_stock']);
+}
