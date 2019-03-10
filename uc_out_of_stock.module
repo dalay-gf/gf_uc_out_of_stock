@@ -592,6 +592,6 @@ function _uc_out_of_stock_get_error($type, $nid, $attrs, $stock, $qty = 0) {
  */
 function uc_out_of_stock_update_projects_alter(&$projects) {
   // Отключаем проверку обновлений для модуля. Ибо 
-  // его код был изменен и обновлятье теперь его нельзя.
+  // его код был изменен и обновлять теперь его нельзя.
   unset($projects['uc_out_of_stock']);
 }
